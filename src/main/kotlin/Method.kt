@@ -23,6 +23,7 @@ data class Method(
                 labelDict[ins] = instruction
                 instructions.add(instruction)
             }
+
             InstructionType.GOTO, InstructionType.CON_JUMP -> {
                 val label = ins.substring(ins.indexOf(":"))
                 if (labelDict.containsKey(label)) {
@@ -37,6 +38,7 @@ data class Method(
                 }
                 instructions.add(instruction)
             }
+
             InstructionType.RETURN -> {
                 instructions.add(instruction)
             }

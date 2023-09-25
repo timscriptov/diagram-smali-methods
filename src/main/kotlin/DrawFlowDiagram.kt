@@ -1,13 +1,16 @@
+import java.io.BufferedReader
 import java.io.File
+import java.io.FileReader
+import java.io.IOException
 
 class DrawFlowDiagram(
     private val smaliFilePath: String,
     private val pictureFormat: String,
-    private val methodsToDraw: List<String>?,
+    private val methodsToDraw: Array<String>?,
     private val outputDir: String,
-    private val dotFilePath: String
+    private val dotFilePath: String,
 ) {
-    private val classInSmali = ClassInSmali()
+    private val classInSmali: ClassInSmali = ClassInSmali()
     private var curMethodName: String? = null
 
     fun run() {
@@ -16,40 +19,46 @@ class DrawFlowDiagram(
     }
 
     private fun parseClassInSmali() {
-        File(smaliFilePath).bufferedReader().use { br ->
-            br.lineSequence().forEachIndexed { lineIndex, line ->
-                val lineInfos = line.trim().split(" ")
-                when (lineInfos[0]) {
-                    ".class" -> classInSmali.setClassName(lineInfos.last())
-                    ".method" -> {
-                        curMethodName = lineInfos.last().also { methodName ->
-                            if (methodsToDraw == null || methodName in methodsToDraw ||
-                                methodName.substringBefore("(") in methodsToDraw
-                            ) {
-                                classInSmali.addMethod(methodName)
-                            } else {
-                                curMethodName = null
+        try {
+            BufferedReader(FileReader(smaliFilePath)).use { smaliFile ->
+                smaliFile.lineSequence().forEachIndexed { lineIndex, line ->
+                    val trimLine = line.trim()
+                    if (trimLine.isNotEmpty()) {
+                        val splitLine = trimLine.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                        if (".class" == splitLine[0]) {
+                            classInSmali.setClassName(splitLine[splitLine.size - 1])
+                        } else if (".method" == splitLine[0]) {
+                            curMethodName = splitLine[splitLine.size - 1].also { methodName ->
+                                if (methodsToDraw == null || listOf(*methodsToDraw).contains(methodName) ||
+                                    listOf(*methodsToDraw)
+                                        .contains(methodName.substring(0, methodName.indexOf("(")))
+                                ) {
+                                    classInSmali.addMethod(methodName)
+                                } else {
+                                    curMethodName = null
+                                }
                             }
-                        }
-                    }
-
-                    ".end" -> curMethodName = null
-                    else -> {
-                        curMethodName?.let { methodName ->
-                            classInSmali.addMethodIns(methodName, line, lineIndex + 1)
+                        } else if (".end method" == splitLine[0]) {
+                            curMethodName = null
+                        } else {
+                            curMethodName?.let { methodName ->
+                                classInSmali.addMethodIns(methodName, trimLine, lineIndex + 1)
+                            }
                         }
                     }
                 }
             }
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
     }
 
     private fun draw() {
-        classInSmali.methodDict.values.forEach { method ->
+        for (method in classInSmali.methodDict.values) {
             try {
                 drawMethodFlowDiagram(method)
             } catch (ex: Exception) {
-                println("\n\tDraw method flow diagram error!\n\terror message: ${ex.message}\n\tmethod name: ${method.methodName}\n")
+                println("Draw method flow diagram error!\nerror message:" + ex.message + "\nmethod name:" + method.methodName)
             }
         }
     }
@@ -96,26 +105,34 @@ class DrawFlowDiagram(
     private fun parseDotToPicture(dotStr: String, methodName: String) {
         val name = methodName.replace("[/<>]".toRegex(), "")
         val tempDotFileName = "$outputDir/$name.dot"
-
         File(tempDotFileName).writeText(dotStr)
-
-        val outputFileName = "$outputDir/$name.$pictureFormat"
-        val args = listOf(dotFilePath, "-T$pictureFormat", tempDotFileName, "-o", outputFileName)
-        val process = ProcessBuilder(args).start()
-        process.waitFor()
-        File(tempDotFileName).delete()
-        println("Draw method($methodName) flow diagram succeeded!")
+        val outputSvgFileName = "$outputDir/$name.$pictureFormat"
+        try {
+            ProcessBuilder(dotFilePath, "-T$pictureFormat", tempDotFileName, "-o", outputSvgFileName).start().waitFor()
+            val tempDotFile = File(tempDotFileName)
+            if (tempDotFile.exists()) {
+                tempDotFile.delete()
+            }
+            println("Draw method($methodName) flow diagram succeed!")
+        } catch (e: IOException) {
+            e.printStackTrace()
+        } catch (e: InterruptedException) {
+            e.printStackTrace()
+        }
     }
 
     private fun getDotStrForEdge(fromLineNum: Int, toLineNum: Int, edgeColor: String): String {
-        return "\tedge[color= $edgeColor ]\n\tnode_$fromLineNum->node_$toLineNum\n\tedge[color=black]\n";
+        return "\tedge[color=$edgeColor]\n" +
+                "\tnode_$fromLineNum->node_$toLineNum\n" +
+                "\tedge[color=black]\n"
     }
 
     private fun getDotStrForNode(instruction: Instruction): String {
-        return if (instruction.ins.startsWith("return")) {
-            "\tnode_${instruction.lineNum} [label=\"<f0>${instruction.lineNum}|<f1>${instruction.ins}\",style=filled,fillcolor=yellow];\n"
+        val label = if (instruction.ins.startsWith("return")) {
+            "style=filled,fillcolor=yellow"
         } else {
-            "\tnode_${instruction.lineNum} [label=\"<f0>${instruction.lineNum}|<f1>${instruction.ins}\"];\n"
+            ""
         }
+        return "\tnode_" + instruction.lineNum + " [label=\"<f0>" + instruction.lineNum + "|<f1>" + instruction.ins + "\"" + label + "];\n"
     }
 }

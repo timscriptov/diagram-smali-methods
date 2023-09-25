@@ -27,5 +27,5 @@ fun main(args: Array<String>) {
         return
     }
 
-    DrawFlowDiagram(smaliFilePath, pictureFormat, methodsToDraw, outputDir, dotFilePath).run()
+    DrawFlowDiagram(smaliFilePath, pictureFormat, methodsToDraw?.toTypedArray(), outputDir, dotFilePath).run()
 }
