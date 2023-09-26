@@ -22,9 +22,7 @@ class DotRequest(
     private val imageSource: SnapshotStateMap<String, String>
 ) {
     fun execute() = CoroutineScope(Dispatchers.IO).launch {
-        if (!NetHelper.isInternetAvailable()) {
-            println("isInternetAvailable")
-        } else {
+        if (NetHelper.isInternetAvailable()) {
             val client = HttpClient()
             val formData = Parameters.build {
                 append("dot_diagram", dot)
@@ -40,7 +38,6 @@ class DotRequest(
                         val pngFile = File(outputDir, "${methodName.toFileName()}.png")
                         FileHelper.writeToFile(pngFile, response.readBytes())
                         imageSource[methodName] = pngFile.path
-//                        println(pngFile.path)
                     }
                 }.await()
             }
