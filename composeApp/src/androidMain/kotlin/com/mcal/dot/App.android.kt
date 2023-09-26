@@ -124,7 +124,6 @@ class AppActivity : ComponentActivity() {
                                                 horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
                                                 Text(modifier = Modifier.padding(8.dp), text = t)
-                                                println(u)
                                                 Image(
                                                     bitmap = ImageHelper.imageFromFile(u),
                                                     contentDescription = ""
