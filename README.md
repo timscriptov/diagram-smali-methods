@@ -1,17 +1,16 @@
-# Smali Methods Diagram
+# Compose Multiplatform Application
 
-## Run
-```
--s The smali file path
--f The picture format
--m The method name or method signature
--o The output flow diagrams' directory
--d The dot.exe application path
-```
+## Before running!
+ - install JDK 8 on your machine
+ - add `local.properties` file to the project root and set a path to Android SDK there
 
-## Example
-```
--s "C:\file.smali" -f png -m <init>()V -o "C:\output\" -d "C:\dot.exe"
-```
-## Download dot.exe
-https://www.graphviz.org/download/
+### Android
+To run the application on android device/emulator:  
+ - open project in Android Studio and run imported android run configuration
+
+To build the application bundle:
+ - run `./gradlew :composeApp:assembleDebug`
+ - find `.apk` file in `composeApp/build/outputs/apk/debug/composeApp-debug.apk`
+
+### Desktop
+Run the desktop application: `./gradlew :composeApp:run`

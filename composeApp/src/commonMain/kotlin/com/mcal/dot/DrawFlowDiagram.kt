@@ -1,14 +1,16 @@
+package com.mcal.dot
+
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
 
 class DrawFlowDiagram(
-    private val smaliFilePath: String,
-    private val pictureFormat: String,
+    private val smaliFile: File,
     private val methodsToDraw: Array<String>?,
-    private val outputDir: String,
-    private val dotFilePath: String,
+    private val outputDir: File,
+    private val imageSource: SnapshotStateMap<String, String>,
 ) {
     private val classInSmali: ClassInSmali = ClassInSmali()
     private var curMethodName: String? = null
@@ -20,7 +22,7 @@ class DrawFlowDiagram(
 
     private fun parseClassInSmali() {
         try {
-            BufferedReader(FileReader(smaliFilePath)).use { smaliFile ->
+            BufferedReader(FileReader(smaliFile)).use { smaliFile ->
                 smaliFile.lineSequence().forEachIndexed { lineIndex, line ->
                     val trimLine = line.trim()
                     if (trimLine.isNotEmpty()) {
@@ -99,26 +101,7 @@ class DrawFlowDiagram(
             }
         }
         dotStr.append("}")
-        parseDotToPicture(dotStr.toString(), methodName)
-    }
-
-    private fun parseDotToPicture(dotStr: String, methodName: String) {
-        val name = methodName.replace("[/<>]".toRegex(), "")
-        val tempDotFileName = "$outputDir/$name.dot"
-        File(tempDotFileName).writeText(dotStr)
-        val outputSvgFileName = "$outputDir/$name.$pictureFormat"
-        try {
-            ProcessBuilder(dotFilePath, "-T$pictureFormat", tempDotFileName, "-o", outputSvgFileName).start().waitFor()
-            val tempDotFile = File(tempDotFileName)
-            if (tempDotFile.exists()) {
-                tempDotFile.delete()
-            }
-            println("Draw method($methodName) flow diagram succeed!")
-        } catch (e: IOException) {
-            e.printStackTrace()
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
-        }
+        DotRequest(dotStr.toString(), methodName, outputDir, imageSource).execute()
     }
 
     private fun getDotStrForEdge(fromLineNum: Int, toLineNum: Int, edgeColor: String): String {

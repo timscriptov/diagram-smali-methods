@@ -1,3 +1,5 @@
+package com.mcal.dot
+
 class ArgumentParser(
     private val args: Array<String>
 ) {

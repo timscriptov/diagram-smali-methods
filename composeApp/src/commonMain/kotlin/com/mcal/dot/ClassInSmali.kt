@@ -1,3 +1,5 @@
+package com.mcal.dot
+
 data class ClassInSmali(
     @JvmField
     var className: String? = null

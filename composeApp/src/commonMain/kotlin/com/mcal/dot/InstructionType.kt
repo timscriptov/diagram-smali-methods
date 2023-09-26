@@ -1,3 +1,5 @@
+package com.mcal.dot
+
 object InstructionType {
     const val GOTO = "goto"
     const val GOTO_LABEL = ":goto"

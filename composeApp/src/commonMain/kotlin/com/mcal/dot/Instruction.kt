@@ -1,3 +1,5 @@
+package com.mcal.dot
+
 class Instruction(val ins: String, val lineNum: Int) {
     val type = InstructionType.getInsType(ins.trim())
     val children: MutableList<Instruction> = ArrayList()
